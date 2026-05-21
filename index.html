@@ -332,7 +332,7 @@ function renderTable() {
       <td>${statusHTML(d)}</td>
       <td><div class="row-actions">
         <button class="edit-btn" data-i="${i}">수정</button>
-        ${d.modified ? `<button class="reset-btn" data-i="${i}" title="원본으로 복원">↺</button>` : ''}
+        ${(d.modified || d.done) ? `<button class="reset-btn" data-i="${i}" title="${d.modified ? '원본으로 복원' : '완료 표시 취소'}">↺</button>` : ''}
       </div></td>
     `;
     tbody.appendChild(tr);
@@ -373,7 +373,10 @@ document.getElementById("tbody").addEventListener("click", e => {
   if (resetBtn) {
     const i = parseInt(resetBtn.dataset.i);
     const d = data[i];
-    if (!confirm(`'${d.name}' 님 정보를 원래 시드 값으로 되돌릴까요?\n수정 사항과 완료 표시가 모두 초기화됩니다.`)) return;
+    const msg = d.modified
+      ? `'${d.name}' 님 정보를 원래 시드 값으로 되돌릴까요?\n수정 사항과 완료 표시가 모두 초기화됩니다.`
+      : `'${d.name}' 님의 완료 표시를 취소할까요?`;
+    if (!confirm(msg)) return;
     resetRow(i, resetBtn);
     return;
   }
@@ -454,6 +457,7 @@ async function saveData(markDone) {
 
 async function resetRow(i, btn) {
   const d = data[i];
+  const wasModified = d.modified;
   if (btn) btn.disabled = true;
   try {
     const res = await fetch("/api/trainees", {
@@ -468,7 +472,9 @@ async function resetRow(i, btn) {
     data[i] = await res.json();
     renderStats();
     renderTable();
-    showToast(`↺ '${data[i].name}' 님 정보가 원본으로 복원되었습니다.`);
+    showToast(wasModified
+      ? `↺ '${data[i].name}' 님 정보가 원본으로 복원되었습니다.`
+      : `↺ '${data[i].name}' 님 완료 표시가 취소되었습니다.`);
   } catch (err) {
     alert(`복원 실패: ${err.message}`);
     console.error(err);
