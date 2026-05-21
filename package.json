@@ -1,0 +1,13 @@
+{
+  "name": "trainee-roster",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "23-1기 교육생 명단 확인 페이지 (Neon + Vercel)",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  },
+  "devDependencies": {
+    "ws": "^8.20.1"
+  }
+}

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>23-1기 교육생 명단 확인</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #f5f5f3;
+    color: #1a1a18;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; color: #1a1a18; }
+  .sub { font-size: 13px; color: #6b6b67; margin-bottom: 1.5rem; }
+
+  /* 통계 */
+  .stat-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .stat { background: #fff; border: 0.5px solid #e0dfd6; border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 80px; }
+  .stat-n { font-size: 22px; font-weight: 600; color: #1a1a18; }
+  .stat-l { font-size: 11px; color: #6b6b67; margin-top: 2px; }
+  .stat.s-done .stat-n { color: #3B6D11; }
+  .stat.s-pend .stat-n { color: #cc3333; }
+
+  /* 진행 바 */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: #6b6b67; margin-bottom: 6px; }
+  .progress-bar { height: 8px; background: #e8e7e0; border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #639922; border-radius: 99px; transition: width .4s ease; }
+
+  /* 검색 */
+  .search-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .search-row input {
+    flex: 1; height: 38px;
+    border: 0.5px solid #ccc;
+    border-radius: 8px; padding: 0 12px;
+    font-size: 14px; background: #fff; color: #1a1a18;
+  }
+  .search-row input:focus { outline: none; border-color: #888; box-shadow: 0 0 0 3px rgba(0,0,0,0.07); }
+
+  /* 필터 버튼 */
+  .filter-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filt-btn {
+    padding: 5px 12px; border-radius: 99px; font-size: 12px; cursor: pointer;
+    border: 0.5px solid #ccc; background: #fff; color: #444; transition: all .15s;
+  }
+  .filt-btn:hover { background: #f0efe8; }
+  .filt-btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+
+  /* 테이블 */
+  .table-wrap { background: #fff; border-radius: 12px; border: 0.5px solid #e0dfd6; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 10px 12px;
+    background: #f8f7f2; color: #6b6b67; font-weight: 500;
+    border-bottom: 0.5px solid #e0dfd6; white-space: nowrap;
+  }
+  tbody tr { border-bottom: 0.5px solid #f0efe8; transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafaf7; }
+  tbody tr.done-row { background: #f2f9e8; }
+  tbody tr.done-row:hover { background: #eaf3de; }
+  td { padding: 10px 12px; vertical-align: middle; color: #1a1a18; }
+  td:first-child { color: #aaa; font-size: 12px; width: 36px; }
+
+  /* 뱃지 */
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap; }
+  .b-central { background: #deeef9; color: #1a5a96; }
+  .b-public  { background: #d8f0e6; color: #0f6e56; }
+  .b-wide    { background: #eceafe; color: #4a44ab; }
+  .b-basic   { background: #faeada; color: #7a480a; }
+
+  /* 상태 */
+  .st-done { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #3B6D11; background: #eaf3de; padding: 3px 10px; border-radius: 6px; }
+  .st-mod  { font-size: 11px; color: #1a5a96; background: #deeef9; padding: 3px 10px; border-radius: 6px; display: inline-block; }
+  .st-none { font-size: 11px; color: #888; background: #f0efe8; padding: 3px 10px; border-radius: 6px; display: inline-block; }
+
+  /* 편집 버튼 */
+  .edit-btn {
+    background: transparent; border: 0.5px solid #ccc;
+    border-radius: 7px; padding: 4px 10px; font-size: 12px;
+    cursor: pointer; color: #444; white-space: nowrap;
+  }
+  .edit-btn:hover { background: #f0efe8; border-color: #aaa; }
+
+  /* 모달 */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.38); z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 14px;
+    border: 0.5px solid #e0dfd6;
+    padding: 1.75rem; width: min(500px, 100%);
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .modal-header h2 { font-size: 16px; font-weight: 600; color: #1a1a18; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+  .modal-close:hover { background: #f0efe8; }
+
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 12px; color: #6b6b67; margin-bottom: 5px; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px;
+    border: 0.5px solid #ccc; border-radius: 8px;
+    font-size: 14px; background: #fff; color: #1a1a18;
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: #888; box-shadow: 0 0 0 3px rgba(0,0,0,0.07);
+  }
+  .field input:disabled { background: #f8f7f2; color: #999; cursor: default; }
+  .field textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+
+  .divider { border: none; border-top: 0.5px solid #e8e7e0; margin: 1.25rem 0; }
+
+  .confirm-box {
+    background: #f2f9e8; border-radius: 10px;
+    padding: 1rem 1.25rem; display: flex; gap: 10px; align-items: flex-start;
+    border: 0.5px solid #c8e09e;
+  }
+  .confirm-icon { font-size: 20px; flex-shrink: 0; }
+  .confirm-box p { font-size: 13px; color: #27500A; line-height: 1.65; }
+  .confirm-box p strong { font-weight: 600; }
+
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; font-family: inherit; transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-cancel { background: #f0efe8; color: #444; border: 0.5px solid #ddd; }
+  .btn-save   { background: #deeef9; color: #1a5a96; }
+  .btn-done   { background: #eaf3de; color: #3B6D11; }
+  .btn-undone { background: #faeada; color: #7a480a; }
+
+  /* 토스트 */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: #2c2c2a; color: #f5f5f3;
+    font-size: 13px; padding: 10px 22px;
+    border-radius: 99px; opacity: 0;
+    transition: all .3s; pointer-events: none;
+    z-index: 200; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 빈 결과 / 로딩 / 에러 */
+  .empty { text-align: center; padding: 2.5rem; color: #aaa; font-size: 13px; }
+  .empty.error { color: #cc3333; }
+
+  @media (max-width: 600px) {
+    .stat-row { gap: 6px; }
+    thead th:nth-child(4), td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>23-1기 교육생 명단 확인</h1>
+  <p class="sub">본인 정보를 확인하고, 수정이 필요하면 수정 후 <strong>확인 완료</strong>를 눌러주세요.</p>
+
+  <div class="stat-row" id="stats"></div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>확인 진행률</span>
+      <span id="prog-label">0 / 0명</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="search" placeholder="🔍  이름 또는 소속으로 검색...">
+  </div>
+
+  <div class="filter-row" id="filters">
+    <button class="filt-btn active" data-f="전체">전체</button>
+    <button class="filt-btn" data-f="미확인">미확인</button>
+    <button class="filt-btn" data-f="수정됨">수정됨</button>
+    <button class="filt-btn" data-f="완료">완료</button>
+    <button class="filt-btn" data-f="중앙부처">중앙부처</button>
+    <button class="filt-btn" data-f="공공기관">공공기관</button>
+    <button class="filt-btn" data-f="광역지자체">광역지자체</button>
+    <button class="filt-btn" data-f="기초지자체">기초지자체</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>연번</th>
+          <th>성명</th>
+          <th>소속 부서</th>
+          <th>구분</th>
+          <th style="width:80px">상태</th>
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="loading">불러오는 중...</div>
+    <div class="empty" id="empty" style="display:none">검색 결과가 없습니다.</div>
+  </div>
+</div>
+
+<!-- 모달 -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">정보 확인 · 수정</h2>
+      <button class="modal-close" id="btn-x" aria-label="닫기">×</button>
+    </div>
+    <div class="field"><label>연번</label><input id="f-no" disabled></div>
+    <div class="field"><label>기수</label><input id="f-ki" disabled></div>
+    <div class="field">
+      <label>성명 <span style="color:#cc3333">*</span></label>
+      <input id="f-name" placeholder="성명">
+    </div>
+    <div class="field">
+      <label>소속 부서 <span style="color:#cc3333">*</span></label>
+      <textarea id="f-dept" placeholder="소속 부서명"></textarea>
+    </div>
+    <div class="field">
+      <label>구분 <span style="color:#cc3333">*</span></label>
+      <select id="f-type">
+        <option>중앙부처</option>
+        <option>공공기관</option>
+        <option>광역지자체</option>
+        <option>기초지자체</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>수정 사유 (선택)</label>
+      <textarea id="f-reason" placeholder="변경 내용을 간략히 적어주세요"></textarea>
+    </div>
+    <hr class="divider">
+    <div class="confirm-box">
+      <span class="confirm-icon">✅</span>
+      <p><strong>정보가 정확하면 확인 완료를 눌러주세요.</strong><br>수정이 필요하면 위 항목을 먼저 수정한 뒤 완료 버튼을 눌러도 됩니다.</p>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" id="btn-cancel">닫기</button>
+      <button class="btn btn-save" id="btn-save">💾 저장만</button>
+      <button class="btn btn-done" id="btn-done">✅ 확인 완료</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let data = [];
+let editIdx = null;
+let activeFilter = "전체";
+
+const badgeClass = {중앙부처:"b-central", 공공기관:"b-public", 광역지자체:"b-wide", 기초지자체:"b-basic"};
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+function renderStats() {
+  const done = data.filter(d => d.done).length;
+  const pend = data.length - done;
+  document.getElementById("stats").innerHTML =
+    `<div class="stat"><div class="stat-n">${data.length}</div><div class="stat-l">전체 인원</div></div>` +
+    `<div class="stat s-done"><div class="stat-n">${done}</div><div class="stat-l">확인 완료</div></div>` +
+    `<div class="stat s-pend"><div class="stat-n">${pend}</div><div class="stat-l">미완료</div></div>`;
+  const pct = data.length === 0 ? 0 : Math.round(done / data.length * 100);
+  document.getElementById("prog").style.width = pct + "%";
+  document.getElementById("prog-label").textContent = `${done} / ${data.length}명 (${pct}%)`;
+}
+
+function statusHTML(d) {
+  if (d.done)     return `<span class="st-done">✓ 완료</span>`;
+  if (d.modified) return `<span class="st-mod">수정됨</span>`;
+  return `<span class="st-none">미확인</span>`;
+}
+
+function matches(d, q, f) {
+  const q2 = q.trim().toLowerCase();
+  if (q2 && !d.name.includes(q2) && !d.dept.toLowerCase().includes(q2)) return false;
+  if (f === "전체") return true;
+  if (f === "완료")   return d.done;
+  if (f === "수정됨") return d.modified && !d.done;
+  if (f === "미확인") return !d.done && !d.modified;
+  return d.type === f;
+}
+
+function renderTable() {
+  const q = document.getElementById("search").value;
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  let count = 0;
+  data.forEach((d, i) => {
+    if (!matches(d, q, activeFilter)) return;
+    count++;
+    const tr = document.createElement("tr");
+    if (d.done) tr.classList.add("done-row");
+    tr.innerHTML = `
+      <td>${d.no}</td>
+      <td style="font-weight:600">${d.name}</td>
+      <td style="max-width:220px;word-break:keep-all;line-height:1.55">${d.dept}</td>
+      <td><span class="badge ${badgeClass[d.type]||''}">${d.type}</span></td>
+      <td>${statusHTML(d)}</td>
+      <td><button class="edit-btn" data-i="${i}">수정</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("empty").style.display = (count === 0 && data.length > 0) ? "block" : "none";
+}
+
+async function loadData() {
+  const loading = document.getElementById("loading");
+  loading.style.display = "block";
+  loading.classList.remove("error");
+  loading.textContent = "불러오는 중...";
+  try {
+    const res = await fetch("/api/trainees");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+    loading.style.display = "none";
+    renderStats();
+    renderTable();
+  } catch (err) {
+    loading.classList.add("error");
+    loading.textContent = `❌ 명단을 불러오지 못했습니다. 새로고침 해주세요. (${err.message})`;
+    console.error(err);
+  }
+}
+
+document.getElementById("filters").addEventListener("click", e => {
+  const btn = e.target.closest(".filt-btn");
+  if (!btn) return;
+  document.querySelectorAll(".filt-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  activeFilter = btn.dataset.f;
+  renderTable();
+});
+
+document.getElementById("tbody").addEventListener("click", e => {
+  const btn = e.target.closest(".edit-btn");
+  if (!btn) return;
+  editIdx = parseInt(btn.dataset.i);
+  const d = data[editIdx];
+  document.getElementById("f-no").value = d.no;
+  document.getElementById("f-ki").value = d.ki;
+  document.getElementById("f-name").value = d.name;
+  document.getElementById("f-dept").value = d.dept;
+  document.getElementById("f-type").value = d.type;
+  document.getElementById("f-reason").value = d.reason || "";
+  document.getElementById("modal-title").textContent = d.done ? "정보 확인 · 수정 (완료됨)" : "정보 확인 · 수정";
+  const btnDone = document.getElementById("btn-done");
+  if (d.done) {
+    btnDone.textContent = "↩ 완료 취소";
+    btnDone.className = "btn btn-undone";
+  } else {
+    btnDone.textContent = "✅ 확인 완료";
+    btnDone.className = "btn btn-done";
+  }
+  document.getElementById("modal").classList.add("open");
+  setTimeout(() => document.getElementById("f-name").focus(), 60);
+});
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  editIdx = null;
+}
+
+async function saveData(markDone) {
+  if (editIdx === null) return;
+  const name = document.getElementById("f-name").value.trim();
+  const dept = document.getElementById("f-dept").value.trim();
+  const type = document.getElementById("f-type").value;
+  const reason = document.getElementById("f-reason").value.trim() || null;
+  if (!name || !dept) { alert("성명과 소속 부서는 필수 항목입니다."); return; }
+
+  const orig = data[editIdx];
+  const isModified = orig.name !== name || orig.dept !== dept || orig.type !== type;
+  const newDone = markDone !== undefined ? markDone : orig.done;
+  const payload = {
+    no: orig.no,
+    name, dept, type, reason,
+    modified: isModified || orig.modified,
+    done: newDone,
+  };
+
+  const btns = document.querySelectorAll(".modal-btns .btn");
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    const res = await fetch("/api/trainees", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || `HTTP ${res.status}`);
+    }
+    const updated = await res.json();
+    data[editIdx] = updated;
+    closeModal();
+    renderStats();
+    renderTable();
+    if (markDone === true)       showToast("✅ 확인 완료로 표시되었습니다.");
+    else if (markDone === false) showToast("완료 표시가 해제되었습니다.");
+    else                          showToast("💾 저장되었습니다.");
+  } catch (err) {
+    alert(`저장 실패: ${err.message}`);
+    console.error(err);
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+document.getElementById("btn-done").onclick   = () => saveData(!data[editIdx]?.done);
+document.getElementById("btn-save").onclick   = () => saveData(undefined);
+document.getElementById("btn-cancel").onclick = closeModal;
+document.getElementById("btn-x").onclick      = closeModal;
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal")) closeModal();
+});
+document.getElementById("search").addEventListener("input", renderTable);
+
+renderStats();
+loadData();
+</script>
+</body>
+</html>
