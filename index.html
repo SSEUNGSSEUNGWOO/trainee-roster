@@ -299,8 +299,8 @@ function renderStats() {
 }
 
 function statusHTML(d) {
-  if (d.done)     return `<span class="st-done">✓ 완료</span>`;
   if (d.modified) return `<span class="st-mod">수정됨</span>`;
+  if (d.done)     return `<span class="st-done">✓ 완료</span>`;
   return `<span class="st-none">미확인</span>`;
 }
 
@@ -308,8 +308,8 @@ function matches(d, q, f) {
   const q2 = q.trim().toLowerCase();
   if (q2 && !d.name.includes(q2) && !d.dept.toLowerCase().includes(q2)) return false;
   if (f === "전체") return true;
-  if (f === "완료")   return d.done;
-  if (f === "수정됨") return d.modified && !d.done;
+  if (f === "수정됨") return d.modified;
+  if (f === "완료")   return d.done && !d.modified;
   if (f === "미확인") return !d.done && !d.modified;
   return d.type === f;
 }
