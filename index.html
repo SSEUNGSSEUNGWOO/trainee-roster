@@ -81,12 +81,21 @@
   .st-none { font-size: 11px; color: #888; background: #f0efe8; padding: 3px 10px; border-radius: 6px; display: inline-block; }
 
   /* 편집 버튼 */
+  .row-actions { display: inline-flex; gap: 4px; white-space: nowrap; }
   .edit-btn {
     background: transparent; border: 0.5px solid #ccc;
     border-radius: 7px; padding: 4px 10px; font-size: 12px;
     cursor: pointer; color: #444; white-space: nowrap;
   }
   .edit-btn:hover { background: #f0efe8; border-color: #aaa; }
+  .reset-btn {
+    background: #faeada; border: 0.5px solid #d4a574;
+    border-radius: 7px; padding: 4px 8px; font-size: 14px;
+    cursor: pointer; color: #7a480a; line-height: 1;
+    font-weight: 600;
+  }
+  .reset-btn:hover { background: #f0d8b8; border-color: #b88a4f; }
+  .reset-btn:disabled { opacity: .5; cursor: not-allowed; }
 
   /* 모달 */
   .modal-bg {
@@ -321,7 +330,10 @@ function renderTable() {
       <td style="max-width:220px;word-break:keep-all;line-height:1.55">${d.dept}</td>
       <td><span class="badge ${badgeClass[d.type]||''}">${d.type}</span></td>
       <td>${statusHTML(d)}</td>
-      <td><button class="edit-btn" data-i="${i}">수정</button></td>
+      <td><div class="row-actions">
+        <button class="edit-btn" data-i="${i}">수정</button>
+        ${d.modified ? `<button class="reset-btn" data-i="${i}" title="원본으로 복원">↺</button>` : ''}
+      </div></td>
     `;
     tbody.appendChild(tr);
   });
@@ -357,6 +369,14 @@ document.getElementById("filters").addEventListener("click", e => {
 });
 
 document.getElementById("tbody").addEventListener("click", e => {
+  const resetBtn = e.target.closest(".reset-btn");
+  if (resetBtn) {
+    const i = parseInt(resetBtn.dataset.i);
+    const d = data[i];
+    if (!confirm(`'${d.name}' 님 정보를 원래 시드 값으로 되돌릴까요?\n수정 사항과 완료 표시가 모두 초기화됩니다.`)) return;
+    resetRow(i, resetBtn);
+    return;
+  }
   const btn = e.target.closest(".edit-btn");
   if (!btn) return;
   editIdx = parseInt(btn.dataset.i);
@@ -429,6 +449,30 @@ async function saveData(markDone) {
     console.error(err);
   } finally {
     btns.forEach(b => b.disabled = false);
+  }
+}
+
+async function resetRow(i, btn) {
+  const d = data[i];
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch("/api/trainees", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ no: d.no, reset: true }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || `HTTP ${res.status}`);
+    }
+    data[i] = await res.json();
+    renderStats();
+    renderTable();
+    showToast(`↺ '${data[i].name}' 님 정보가 원본으로 복원되었습니다.`);
+  } catch (err) {
+    alert(`복원 실패: ${err.message}`);
+    console.error(err);
+    if (btn) btn.disabled = false;
   }
 }
 

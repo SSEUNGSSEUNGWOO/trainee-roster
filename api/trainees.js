@@ -16,9 +16,35 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { no, name, dept, type, modified, done, reason } = req.body ?? {};
-      if (!no || !name || !dept || !type) {
-        return res.status(400).json({ error: 'no, name, dept, type are required' });
+      const body = req.body ?? {};
+      const { no, reset } = body;
+      if (!no) {
+        return res.status(400).json({ error: 'no is required' });
+      }
+
+      // 원본 복원 모드
+      if (reset === true) {
+        const rows = await sql`
+          UPDATE trainees
+          SET name = orig_name,
+              dept = orig_dept,
+              type = orig_type,
+              modified = FALSE,
+              done = FALSE,
+              reason = NULL
+          WHERE no = ${no}
+          RETURNING no, ki, name, dept, type, modified, done, reason, updated_at
+        `;
+        if (rows.length === 0) {
+          return res.status(404).json({ error: 'Not found' });
+        }
+        return res.status(200).json(rows[0]);
+      }
+
+      // 일반 수정 모드
+      const { name, dept, type, modified, done, reason } = body;
+      if (!name || !dept || !type) {
+        return res.status(400).json({ error: 'name, dept, type are required' });
       }
       const rows = await sql`
         UPDATE trainees
