@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>23-1기 교육생 명단 확인</title>
+<title>AI 챔피언 참여자 명단 확인</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -67,6 +67,7 @@
   tbody tr.done-row:hover { background: #eaf3de; }
   td { padding: 10px 12px; vertical-align: middle; color: #1a1a18; }
   td:first-child { color: #aaa; font-size: 12px; width: 36px; }
+  .name-cell { font-weight: 600; white-space: nowrap; min-width: 58px; }
 
   /* 뱃지 */
   .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap; }
@@ -174,7 +175,7 @@
 
   @media (max-width: 600px) {
     .stat-row { gap: 6px; }
-    thead th:nth-child(4), td:nth-child(4) { display: none; }
+    thead th:nth-child(5), td:nth-child(5) { display: none; }
     td, thead th { padding: 8px 6px; }
     td:nth-child(3) { max-width: 120px !important; word-break: break-word !important; line-height: 1.45 !important; font-size: 12px; }
     .edit-btn { padding: 4px 8px; }
@@ -183,8 +184,8 @@
 </head>
 <body>
 <div class="container">
-  <h1>23-1기 교육생 명단 확인</h1>
-  <p class="sub">본인 정보를 확인하고, 수정이 필요하면 수정 후 <strong>확인 완료</strong>를 눌러주세요.</p>
+  <h1>AI 챔피언 참여자 명단 확인</h1>
+  <p class="sub">본인 소속 정보를 확인하고, 수정이 필요하면 수정 후 <strong>확인 완료</strong>를 눌러주세요.</p>
 
   <div class="stat-row" id="stats"></div>
 
@@ -197,7 +198,7 @@
   </div>
 
   <div class="search-row">
-    <input type="text" id="search" placeholder="🔍  이름 또는 소속으로 검색...">
+    <input type="text" id="search" placeholder="이름 · 기관 · 부서 · 직급 검색">
   </div>
 
   <div class="filter-row" id="filters">
@@ -217,7 +218,9 @@
         <tr>
           <th>연번</th>
           <th>성명</th>
-          <th>소속 부서</th>
+          <th>기관</th>
+          <th>부서</th>
+          <th>직급</th>
           <th>구분</th>
           <th style="width:80px">상태</th>
           <th style="width:60px"></th>
@@ -238,18 +241,26 @@
       <button class="modal-close" id="btn-x" aria-label="닫기">×</button>
     </div>
     <div class="field"><label>연번</label><input id="f-no" disabled></div>
-    <div class="field"><label>기수</label><input id="f-ki" disabled></div>
+    <div class="field"><label>기수</label><input id="f-cohort" disabled></div>
     <div class="field">
       <label>성명 <span style="color:#cc3333">*</span></label>
       <input id="f-name" placeholder="성명">
     </div>
     <div class="field">
-      <label>소속 부서 <span style="color:#cc3333">*</span></label>
-      <textarea id="f-dept" placeholder="소속 부서명"></textarea>
+      <label>기관 <span style="color:#cc3333">*</span></label>
+      <input id="f-org" placeholder="기관명">
     </div>
     <div class="field">
-      <label>구분 <span style="color:#cc3333">*</span></label>
-      <select id="f-type">
+      <label>부서</label>
+      <textarea id="f-dept" placeholder="부서명"></textarea>
+    </div>
+    <div class="field">
+      <label>직급</label>
+      <input id="f-rank" placeholder="직급">
+    </div>
+    <div class="field">
+      <label>기관 구분 <span style="color:#cc3333">*</span></label>
+      <select id="f-org-type">
         <option>중앙부처</option>
         <option>공공기관</option>
         <option>광역지자체</option>
@@ -309,12 +320,13 @@ function statusHTML(d) {
 
 function matches(d, q, f) {
   const q2 = q.trim().toLowerCase();
-  if (q2 && !d.name.includes(q2) && !d.dept.toLowerCase().includes(q2)) return false;
+  const haystack = [d.name, d.org, d.dept, d.rank].join(" ").toLowerCase();
+  if (q2 && !haystack.includes(q2)) return false;
   if (f === "전체") return true;
   if (f === "수정됨") return d.modified;
   if (f === "완료")   return d.done && !d.modified;
   if (f === "미확인") return !d.done && !d.modified;
-  return d.type === f;
+  return d.org_type === f;
 }
 
 function renderTable() {
@@ -329,9 +341,11 @@ function renderTable() {
     if (d.done) tr.classList.add("done-row");
     tr.innerHTML = `
       <td>${d.no}</td>
-      <td style="font-weight:600">${d.name}</td>
-      <td style="max-width:220px;word-break:keep-all;line-height:1.55">${d.dept}</td>
-      <td><span class="badge ${badgeClass[d.type]||''}">${d.type}</span></td>
+      <td class="name-cell">${d.name}</td>
+      <td style="max-width:180px;word-break:keep-all;line-height:1.55">${d.org}</td>
+      <td style="max-width:220px;word-break:keep-all;line-height:1.55">${d.dept || "-"}</td>
+      <td>${d.rank || "-"}</td>
+      <td><span class="badge ${badgeClass[d.org_type]||''}">${d.org_type}</span></td>
       <td>${statusHTML(d)}</td>
       <td><div class="row-actions">
         <button class="edit-btn" data-i="${i}">수정</button>
@@ -388,10 +402,12 @@ document.getElementById("tbody").addEventListener("click", e => {
   editIdx = parseInt(btn.dataset.i);
   const d = data[editIdx];
   document.getElementById("f-no").value = d.no;
-  document.getElementById("f-ki").value = d.ki;
+  document.getElementById("f-cohort").value = d.cohort;
   document.getElementById("f-name").value = d.name;
+  document.getElementById("f-org").value = d.org;
   document.getElementById("f-dept").value = d.dept;
-  document.getElementById("f-type").value = d.type;
+  document.getElementById("f-rank").value = d.rank;
+  document.getElementById("f-org-type").value = d.org_type;
   document.getElementById("f-reason").value = d.reason || "";
   document.getElementById("modal-title").textContent = d.done ? "정보 확인 · 수정 (완료됨)" : "정보 확인 · 수정";
   const btnDone = document.getElementById("btn-done");
@@ -414,17 +430,23 @@ function closeModal() {
 async function saveData(markDone) {
   if (editIdx === null) return;
   const name = document.getElementById("f-name").value.trim();
+  const org = document.getElementById("f-org").value.trim();
   const dept = document.getElementById("f-dept").value.trim();
-  const type = document.getElementById("f-type").value;
+  const rank = document.getElementById("f-rank").value.trim();
+  const org_type = document.getElementById("f-org-type").value;
   const reason = document.getElementById("f-reason").value.trim() || null;
-  if (!name || !dept) { alert("성명과 소속 부서는 필수 항목입니다."); return; }
+  if (!name || !org) { alert("성명과 기관은 필수 항목입니다."); return; }
 
   const orig = data[editIdx];
-  const isModified = orig.name !== name || orig.dept !== dept || orig.type !== type;
+  const isModified = orig.name !== name
+    || orig.org !== org
+    || orig.dept !== dept
+    || orig.rank !== rank
+    || orig.org_type !== org_type;
   const newDone = markDone !== undefined ? markDone : orig.done;
   const payload = {
     no: orig.no,
-    name, dept, type, reason,
+    name, org, dept, rank, org_type, reason,
     modified: isModified || orig.modified,
     done: newDone,
   };

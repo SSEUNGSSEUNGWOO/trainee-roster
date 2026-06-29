@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const rows = await sql`
-        SELECT no, ki, name, dept, type, modified, done, reason, updated_at
+        SELECT no, cohort, name, org_type, org, dept, rank, modified, done, reason, updated_at
         FROM trainees
         ORDER BY no ASC
       `;
@@ -27,13 +27,15 @@ export default async function handler(req, res) {
         const rows = await sql`
           UPDATE trainees
           SET name = orig_name,
+              org_type = orig_org_type,
+              org = orig_org,
               dept = orig_dept,
-              type = orig_type,
+              rank = orig_rank,
               modified = FALSE,
               done = FALSE,
               reason = NULL
           WHERE no = ${no}
-          RETURNING no, ki, name, dept, type, modified, done, reason, updated_at
+          RETURNING no, cohort, name, org_type, org, dept, rank, modified, done, reason, updated_at
         `;
         if (rows.length === 0) {
           return res.status(404).json({ error: 'Not found' });
@@ -42,20 +44,22 @@ export default async function handler(req, res) {
       }
 
       // 일반 수정 모드
-      const { name, dept, type, modified, done, reason } = body;
-      if (!name || !dept || !type) {
-        return res.status(400).json({ error: 'name, dept, type are required' });
+      const { name, org_type, org, dept, rank, modified, done, reason } = body;
+      if (!name || !org_type || !org) {
+        return res.status(400).json({ error: 'name, org_type, org are required' });
       }
       const rows = await sql`
         UPDATE trainees
         SET name = ${name},
-            dept = ${dept},
-            type = ${type},
+            org_type = ${org_type},
+            org = ${org},
+            dept = ${dept ?? ''},
+            rank = ${rank ?? ''},
             modified = ${Boolean(modified)},
             done = ${Boolean(done)},
             reason = ${reason ?? null}
         WHERE no = ${no}
-        RETURNING no, ki, name, dept, type, modified, done, reason, updated_at
+        RETURNING no, cohort, name, org_type, org, dept, rank, modified, done, reason, updated_at
       `;
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Not found' });

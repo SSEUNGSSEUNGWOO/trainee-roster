@@ -1,91 +1,77 @@
-# 23-1기 교육생 명단 확인
+# AI 챔피언 참여자 명단 확인
 
-교육생이 본인 정보를 확인/수정하고 "확인 완료" 표시를 할 수 있는 단일 페이지 웹앱.
+참여자가 본인 소속 정보를 확인하고 직접 수정/확인 완료 처리할 수 있는 웹앱입니다.
 
-## 스택
-- 프론트엔드: 정적 HTML/CSS/JS
-- 백엔드: Vercel Serverless Functions (Node.js, ESM)
-- DB: Neon Postgres (`@neondatabase/serverless`)
-- 호스팅: Vercel
+## 구조
+- 프론트엔드: 정적 `index.html`
+- API: Vercel Serverless Function `api/trainees.js`
+- DB: Neon Postgres
 
-## 폴더 구조
-```
+## 파일
+```text
 trainee-roster/
-├── index.html              # 교육생용 페이지
-├── api/
-│   └── trainees.js         # GET / PATCH 핸들러
-├── schema.sql              # 테이블 + 트리거
-├── seed.sql                # 18명 초기 데이터
-├── package.json
-├── .env.local.example
-└── .gitignore
+├── index.html          # 참여자 확인/수정 화면
+├── api/trainees.js     # GET/PATCH API
+├── schema.sql          # Neon 테이블/트리거
+├── seed.sql            # 초기 명단 75명
+├── scripts/init-db.js  # schema + seed 적용 스크립트
+└── .env.local.example
 ```
 
-## 셋업
+## Neon DB 셋업
+1. Neon Console에서 프로젝트를 만들고 connection string을 복사합니다.
+2. `.env.local.example`을 `.env.local`로 복사합니다.
+3. `.env.local`의 `DATABASE_URL=` 뒤에 connection string을 넣습니다.
+4. 아래 명령으로 테이블과 초기 명단을 적용합니다.
 
-### 1. DB 셋업 (Neon)
-
-1. [Neon Console](https://console.neon.tech) → 프로젝트 → **SQL Editor**
-2. `schema.sql` 내용 붙여넣고 **Run**
-3. `seed.sql` 내용 붙여넣고 **Run** (18명 초기 데이터 삽입)
-4. **Connection Details** 에서 connection string 복사
-
-### 2. 로컬 환경변수
-
-`.env.local.example` → `.env.local` 로 복사하고 `DATABASE_URL` 채우기:
-```powershell
-Copy-Item .env.local.example .env.local
-# .env.local 열어서 DATABASE_URL 붙여넣기
-```
-
-### 3. 로컬 실행
 ```powershell
 npm install
-npx vercel dev
-# http://localhost:3000
+node scripts/init-db.js
 ```
 
-### 4. Vercel 배포
+## 로컬 실행
 ```powershell
-npm install -g vercel
-vercel login
-vercel             # 첫 배포 (프로젝트 연결, 질문에 따라 답하기)
-vercel --prod      # 프로덕션 배포
+npm run dev
 ```
 
-배포 후 **Vercel 대시보드 → Project → Settings → Environment Variables** 에서
-`DATABASE_URL` 을 **Production / Preview / Development** 셋 다 등록.
-환경변수 추가 후 한 번 더 `vercel --prod` 로 재배포.
+브라우저에서 `http://localhost:3000`으로 접속합니다.
+
+## 배포
+Vercel 프로젝트 환경변수에 `DATABASE_URL`을 등록한 뒤 배포합니다.
+
+```powershell
+vercel --prod
+```
 
 ## API
 
-### `GET /api/trainees`
-전체 교육생 목록 반환 (no 오름차순).
+`GET /api/trainees`
+- 전체 명단 조회
 
-### `PATCH /api/trainees`
-개별 교육생 정보 수정. Body:
+`PATCH /api/trainees`
+- 개별 행 수정 또는 원본 복원
+
+수정 예시:
 ```json
 {
   "no": 1,
   "name": "구윤모",
-  "dept": "서울특별시 데이터센터 인터넷통신과",
-  "type": "광역지자체",
+  "org_type": "광역지자체",
+  "org": "서울특별시",
+  "dept": "데이터센터 인터넷통신과",
+  "rank": "주무관",
   "modified": true,
   "done": true,
-  "reason": "부서명 변경"
+  "reason": "부서명 수정"
 }
 ```
 
-## 권한 모델
-**자유 수정 (인증 없음).** 링크를 아는 사람은 누구나 모든 행을 수정 가능.
-18명 내부 교육 용도라 신뢰 기반으로 운영. 링크 외부 공개에 주의.
+## 운영 메모
+- 현재 인증은 없습니다. 링크를 아는 사용자는 모든 행을 수정할 수 있습니다.
+- 운영자는 Neon SQL Editor에서 수정 내역을 조회하거나 CSV로 내려받을 수 있습니다.
 
-## 데이터 확인
-운영자는 [Neon Console SQL Editor](https://console.neon.tech) 에서 직접 조회:
 ```sql
-SELECT no, name, dept, type, modified, done, reason, updated_at
+SELECT no, cohort, name, org_type, org, dept, rank, modified, done, reason, updated_at
 FROM trainees
 ORDER BY no;
 ```
-
-CSV로 내보내려면 Neon SQL Editor 결과 화면 우측의 **Export → CSV** 사용.

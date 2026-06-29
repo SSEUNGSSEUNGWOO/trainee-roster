@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "23-1기 교육생 명단 확인 페이지 (Neon + Vercel)",
+  "description": "AI 챔피언 참여자 명단 확인 페이지 (Neon + Vercel)",
+  "scripts": {
+    "dev": "node scripts/local-server.js"
+  },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4"
   },
