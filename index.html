@@ -53,8 +53,8 @@
   .filt-btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
 
   /* 테이블 */
-  .table-wrap { background: #fff; border-radius: 12px; border: 0.5px solid #e0dfd6; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-wrap { background: #fff; border-radius: 12px; border: 0.5px solid #e0dfd6; overflow-x: auto; }
+  table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
   thead th {
     text-align: left; padding: 10px 12px;
     background: #f8f7f2; color: #6b6b67; font-weight: 500;
@@ -178,6 +178,14 @@
     thead th:nth-child(5), td:nth-child(5) { display: none; }
     td, thead th { padding: 8px 6px; }
     td:nth-child(3) { max-width: 120px !important; word-break: break-word !important; line-height: 1.45 !important; font-size: 12px; }
+    thead th:last-child, tbody td:last-child {
+      position: sticky;
+      right: 0;
+      background: #fff;
+      box-shadow: -8px 0 12px rgba(255,255,255,.9);
+    }
+    tbody tr:hover td:last-child,
+    tbody tr.done-row td:last-child { background: inherit; }
     .edit-btn { padding: 4px 8px; }
   }
 </style>
